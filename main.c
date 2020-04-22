@@ -101,9 +101,19 @@ int main(void)
 	igraph_t g;
 
 	// generate_small_test_graph(&g);
-	generate_random_connected_graph(&g, 10000, 0.1, 5, 0);
+	
+	generate_random_connected_graph(&g, 1000, 0.1, INT_MAX, 0);
+	
 	// igraph_full(&g, 10000, IGRAPH_UNDIRECTED, IGRAPH_NO_LOOPS);
-	igraph_ring(&g,10000,IGRAPH_UNDIRECTED, 0, 1);
+
+	// igraph_ring(&g,1000,IGRAPH_UNDIRECTED, 0, 1);
+
+	// igraph_vector_t dimvector;
+	// igraph_vector_init(&dimvector, 3);
+	// VECTOR(dimvector)[0]=33;
+	// VECTOR(dimvector)[1]=33;
+	// VECTOR(dimvector)[2]=33;
+	// igraph_lattice(&g, &dimvector, 0, IGRAPH_UNDIRECTED, 0,1);
 
 	printf("Created graph with %d vertices and %d edges\n", igraph_vcount(&g), igraph_ecount(&g));
 

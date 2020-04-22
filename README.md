@@ -13,13 +13,24 @@
 
 
 ## Examples of Running Time
+
+### 100 Vertices, 0.1 Density, No Maximum Degree Limit
+```
+Created graph with 100 vertices and 511 edges
+...
+100000 samples taken, with per sample time taking 36.17 us
+Total time spent 3 seconds
+```
+This compares to the python implementation down from ~1ms per sample to 36us per sample. But still limited to linear performance improvement.
+
 ### 1000 Vertices
 ```
-Created graph with 1000 vertices and 49748 edges
+Created graph with 1000 vertices and 49714 edges
 ...
-1000 samples taken, with per sample time taking 1029.00 us
+1000 samples taken, with per sample time taking 1.05 ms
 Total time spent 1 seconds
 ```
+
 ### 10000 Vertices
 ```
 Created graph with 10000 vertices and 24974 edges
@@ -29,3 +40,28 @@ Total time spent 18 seconds
 ```
 
 ### Complete Graph, 10000 Vertices
+```
+Created graph with 10000 vertices and 49995000 edges
+...
+1000 samples taken, with per sample time taking 919.95 ms
+Total time spent 919 seconds
+
+```
+
+### Ring Graph, 1000 Vertices
+```
+Created graph with 1000 vertices and 1000 edges
+...
+1000 samples taken, with per sample time taking 16.95 ms
+Total time spent 16 seconds
+```
+
+### 3D Lattice Graph, ～30000 Vertices
+```
+Created graph with 35937 vertices and 107811 edges
+...
+1000 samples taken, with per sample time taking 29.75 ms
+Total time spent 29 seconds
+```
+
+Lattice seems to be friendlier to Markov Chains.
