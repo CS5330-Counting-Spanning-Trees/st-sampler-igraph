@@ -18,6 +18,7 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 find_package(IGRAPH REQUIRED)
 
 include_directories(
+    include
     ${IGRAPH_INCLUDES}
 )
 

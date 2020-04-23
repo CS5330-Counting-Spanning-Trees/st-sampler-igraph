@@ -48,6 +48,8 @@ Total time spent 919 seconds
 
 ```
 
+MTT matrix method could do this in 90 seconds.
+
 ### Ring Graph, 1000 Vertices
 ```
 Created graph with 1000 vertices and 1000 edges
