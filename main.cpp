@@ -45,8 +45,16 @@ int main(void)
 	// VECTOR(dimvector)[2]=33;
 	// igraph_lattice(&g, &dimvector, 0, IGRAPH_UNDIRECTED, 0,1);
 
+	time_t current_time;
+    char* c_time_string;
+	/* Convert to local time format. */
+	current_time = time(NULL);
+    c_time_string = ctime(&current_time);
+	log2file(fp, "%s", c_time_string);
+
 	log2file(fp, "Created graph with %d vertices and %d edges\n", igraph_vcount(&g), igraph_ecount(&g));
 
+	fflush(fp);
 
 	// igraph_vector_t res;
 	// igraph_vector_init(&res,0);

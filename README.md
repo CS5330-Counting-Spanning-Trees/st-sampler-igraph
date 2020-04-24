@@ -1,4 +1,11 @@
 # Random Spanning Tree Sampler in C
+
+## Build Instructions
+``` bash
+mkdir build && cd build
+cmake ..
+make
+```
 ## Dependencies
 - igraph: a C library for creating, manipulating and analysing graphs 
   - [GitHub](https://github.com/igraph/igraph)
@@ -11,8 +18,35 @@
 - Full graph
 - Many other graphs that are included in the igraph library [Graph Generators](https://igraph.org/c/doc/igraph-Generators.html)
 
+## Running Time of The Approximate Counter
 
-## Examples of Running Time
+### 50 Vertices, Full Graph
+Fri Apr 24 11:41:14 2020
+Created graph with 50 vertices and 1225 edges
+454403 samples taken, with per sample time taking 0.01 ms
+Total time spent 6 seconds
+
+FINAL result = 3.0410e+81 with 2541313 effective samples
+
+### 100 Vertices, Full Graph
+Fri Apr 24 11:26:45 2020
+Created graph with 100 vertices and 4950 edges
+1266882 samples taken, with per sample time taking 0.04 ms
+Total time spent 53 seconds
+
+FINAL result = 5.8982e+195 with 10333308 effective samples
+
+
+### 200 Vertices, Full Graph
+
+Fri Apr 24 11:42:09 2020
+Created graph with 200 vertices and 19900 edges
+3672212 samples taken, with per sample time taking 0.11 ms
+Total time spent 414 seconds
+
+FINAL result = inf with 41766822 effective samples
+
+## Examples of Running Time of the Sampler
 
 ### 100 Vertices, 0.1 Density, No Maximum Degree Limit
 ```

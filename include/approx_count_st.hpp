@@ -42,7 +42,7 @@ public:
     typedef struct pivot_stats{
         igraph_integer_t eid = -1;
         int total = 0;
-        int rippled_total = 0;
+        int rippled_total = 0; // record keeping of how many samples we gotten from rippling
         int present = 0;
         int absent = 0;
         count_mode_t count_mode = UNSPECIFIED;
@@ -55,6 +55,10 @@ public:
         void update(int new_present = 0, int new_absent = 0){
             present += new_present;
             absent += new_absent;
+
+            // not enough samples to create a new ratio data in the buffer
+            if (present + absent < total + requested_batch_size)
+                return;
             total = present + absent;
 
             switch (count_mode){
@@ -88,17 +92,19 @@ public:
             // printf("%lf\n", rmin);
             assert(rmin > 0.1);
 
-            // printf("rmax / rmin = %.6lf \t rmax %.3lf, rmin %.3lf \n", rmax / rmin , rmax, rmin);
+            printf("%.3lf %.3lf %.3lf %.3lf\n", ratio_buffer[0], ratio_buffer[1] ,ratio_buffer[2] ,ratio_buffer[3]);
+
+            printf("rmax / rmin = %.6lf \t rmax %.3lf, rmin %.3lf total %d \n", rmax / rmin , rmax, rmin, total);
             if (rmax / rmin < 1 + FLUCTURATION_THRESHOLD)
             {
                 printf("\nFinal Ratio = %.3lf, batch size = %d\n\n", 0.5 * (rmax + rmin), requested_batch_size);
                 return true; // CONVERGENCE!
             }
 
-            printf("->%.3lf", rmax / rmin);
+            // printf("->%.3lf", rmax / rmin);
 
             // increase the sampling size, capped for 20% increase
-            requested_batch_size = std::max(requested_batch_size, (total - rippled_total) / PIVOT_BUFFER_SIZE / 5);
+            requested_batch_size = std::max(requested_batch_size, total / PIVOT_BUFFER_SIZE / 10);
             return false;
         }
 

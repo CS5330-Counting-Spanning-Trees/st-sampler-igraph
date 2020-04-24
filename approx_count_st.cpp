@@ -74,7 +74,7 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
             if (++k == K)
                 break;
 
-            printf("  moving to new ratio with existing %d rippled samples \n ",  ps_vec[k].total);
+            printf("  moving to new ratio %.3lf with existing %d rippled samples \n ", ps_vec[k].ratio, ps_vec[k].total);
             ps_vec[k].rippled_total = ps_vec[k].total;
         }
 
@@ -115,6 +115,7 @@ void ApproxCountST::sample_mini_batch_with_updates(RandomSpanningTrees* rst, int
         igraph_vector_clear(&res);
 		rst->sample(&res, 0);
 
+        // NOTE: change K to k_start + 1, to disable ripple feature
         for(int k = k_start; k < K ;k++)
         {
             if (igraph_vector_contains(&res, ps_vec[k].eid)){
