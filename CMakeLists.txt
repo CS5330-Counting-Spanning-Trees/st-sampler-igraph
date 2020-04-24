@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(st-stampler-igraph)
 
+# enable C++17 standard (current directory scope)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # configure build types and build c-flags
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
@@ -31,6 +35,8 @@ add_executable(test-igraph
 )
 
 add_executable(st-sampler
-    main.c
+    random_spanning_trees.cpp
+    approx_count_st.cpp
+    main.cpp
 )
 

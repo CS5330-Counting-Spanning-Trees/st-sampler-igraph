@@ -52,7 +52,7 @@ void generate_random_graph(igraph_t* g, igraph_integer_t n, double density, igra
 	igraph_adjlist(g, &adjlist, IGRAPH_ALL, 1);
 }
 
-void generate_random_connected_graph(igraph_t* g, igraph_integer_t n, double density, igraph_integer_t max_degree, igraph_integer_t min_degree)
+void generate_random_connected_graph(igraph_t* g, igraph_integer_t n, double density, igraph_integer_t max_degree = INT_MAX, igraph_integer_t min_degree = 0)
 {
 
 	while(1)

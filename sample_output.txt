@@ -1,0 +1,24 @@
+Created graph with 100 vertices and 441 edges
+671558 samples taken, with per sample time taking 0.04 ms
+Total time spent 23 seconds
+
+FINAL result = 1.7817e+85 with 1740230 effective samples
+
+Created graph with 100 vertices and 441 edges
+505054 samples taken, with per sample time taking 0.03 ms
+Total time spent 15 seconds
+
+FINAL result = 1.8453e+85 with 1296745 effective samples
+
+Created graph with 100 vertices and 441 edges
+538976 samples taken, with per sample time taking 0.03 ms
+Total time spent 17 seconds
+
+FINAL result = 1.3099e+85 with 1379252 effective samples
+
+Created graph with 100 vertices and 441 edges
+501460 samples taken, with per sample time taking 0.03 ms
+Total time spent 14 seconds
+
+FINAL result = 1.8507e+85 with 1301728 effective samples
+
