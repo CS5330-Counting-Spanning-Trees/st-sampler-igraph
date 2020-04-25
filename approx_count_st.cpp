@@ -4,15 +4,16 @@
 #include <random>
 #include <algorithm>
 
-ApproxCountST::ApproxCountST(igraph_t* g, random_walk_mode_t rw_mode) : random_walk_mode(rw_mode), g(g), N(igraph_vcount(g)), M(igraph_ecount(g))
+ApproxCountST::ApproxCountST(GraphLite* gl) : gl(gl), N_initial(gl->vertex_count_all()), M_initial(gl->edge_count_all())
 {
-    assert(M >= N-1);
-    // K = M - (N-1);
-    K = M; // the last round should always yield ratio of 1, for presence
+    assert(M_initial >= N_initial-1);
+    // K = M_initial - (N-1);
+    K = M_initial; // the last round should always yield ratio of 1, for presence
+    N = N_initial;
 
     ps_vec.resize(K);
 
-    printf("Approximate Count ST initialised with a graph of %d vertices and %d edges\n", N, M);
+    printf("Approximate Count ST initialised with a graph of %d vertices and %d edges\n", N, M_initial);
     printf("Iterations of ratio estimators to run: %d rounds\n", K);
 }
 
@@ -22,36 +23,69 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
 {
     printf("approx_count_st...\n");
     // Obtain a shuffled edge sequence, or just iterate as per original sequence
-    // {
-    //     std::vector<igraph_integer_t> e(M);
-    //     for(int i = 0 ; i < N; i++)
-    //         e[i] = i;
+    bool do_shuffle_edges = true;
+    if(do_shuffle_edges)
+    {
+        std::vector<int> e(M_initial);
+        for(int i = 0 ; i < M_initial; i++)
+            e[i] = i;
         
-    //     std::random_device rd;
-    //     std::mt19937 g(rd());
+        std::random_device rd;
+        std::mt19937 gen(rd());
 
-    //     std::shuffle(e.begin(), e.end(), g);
+        std::shuffle(e.begin(), e.end(), gen);
 
-    //     for(int i = 0 ; i < M; i++)
-    //         ps_vec[i].eid = e[i];
+        for(int i = 0 ; i < M_initial; i++)
+            ps_vec[i].eid = e[i];
 
-    //     // so far all ps_vec element's mode should be UNSPECIFIED
-    // }
+        // so far all ps_vec element's mode should be UNSPECIFIED
+    }else{
+        for(int i = 0 ; i < K; i++)
+            ps_vec[i].eid = i;
+    }
 
-    for(int i = 0 ; i < K; i++)
-        ps_vec[i].eid = i;
+    
 
     printf("ps_vec[i].eid done...\n");
     
     // Initialise Random Spanning Tree Sampler
-    RandomSpanningTrees rst(g);
+    RandomSpanningTrees rst(gl);
 
     printf("rst initialised...\n");
 
     // for each k-th loop, we keep drawing batch samples for the k-th ratio, until convergence
-    // This loop will calculate ratio of G_M / G_{M-1} ..... G_{N} / G_{N-1}, total of M-1 - (N-1) + 1 terms
+    // This loop will calculate ratio of G_M / G_{M-1} ..... G_{2} / G_{1} * G{1}, total of M-1 - (N-1) + 1 terms
     for(int k = 0; ; )
     {
+        const auto& e = gl->edge(ps_vec[k].eid);
+
+        // TODO: make it more streamlined
+        // if the edge is invalid, means some other present edge has contracted this one, so the ratio automatically should be 1
+        if(!gl->is_edge_valid(ps_vec[k].eid)){
+            assert(ps_vec[k].ratio == 1.0);
+            printf("short circuiting edge %d, as the edge has been contracted by others before...\n", ps_vec[k].eid);
+            if (++k == K)
+                break;
+        }
+        
+        // Logging the ripple sample count if required
+        if(!ps_vec[k].total)
+        {
+            printf("\nEdge %d (%d->%d)\n",ps_vec[k].eid, e.from, e.to);
+            ps_vec[k].rippled_total = -1;
+        }
+        else if(!ps_vec[k].rippled_total)
+        {
+            printf("\n[%.1lf%%] Edge %d (%d->%d) with existing %d rippled samples, mode %d\n ", 
+            100.0 * (k+1)/ K, ps_vec[k].eid, e.from, e.to,  ps_vec[k].total, ps_vec[k].count_mode);
+
+            ps_vec[k].rippled_total = ps_vec[k].total;
+            // Good! Enough samples were obtained to output past stats
+            if(ps_vec[k].update_count >= PIVOT_BUFFER_SIZE){
+                printf("Past ratio buffer: %.3lf %.3lf %.3lf %.3lf\n", ps_vec[k].ratio_buffer[0], ps_vec[k].ratio_buffer[1] ,ps_vec[k].ratio_buffer[2] ,ps_vec[k].ratio_buffer[3]);
+            }
+        }
+    
         sample_mini_batch_with_updates(&rst, k); // affected by random_walk_mode
         if (ps_vec[k].converged()){
 
@@ -59,11 +93,11 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
             switch(ps_vec[k].count_mode){
                 case PRESENCE:
                     // to contract the edge
-                    rst.contract_edge(ps_vec[k].eid);
+                    gl->contract_edge(ps_vec[k].eid);
                     break;
                 case ABSENCE:
                     // to delete the edge in the incident list
-                    rst.remove_edge(ps_vec[k].eid);
+                    gl->remove_edge(ps_vec[k].eid);
                     break;
                 default:
                     assert(0); // should never come here
@@ -74,8 +108,6 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
             if (++k == K)
                 break;
 
-            printf("  moving to new ratio %.3lf with existing %d rippled samples \n ", ps_vec[k].ratio, ps_vec[k].total);
-            ps_vec[k].rippled_total = ps_vec[k].total;
         }
 
         
@@ -106,19 +138,23 @@ void ApproxCountST::sample_mini_batch_with_updates(RandomSpanningTrees* rst, int
     // printf("mini_batch at [%d] for %d samples\n", k_start, BATCH_SIZE);
 
     // store the sample obtained from the sampler
-    igraph_vector_t res;
-	igraph_vector_init(&res,0);
+    // TODO: put this outside the function to make initialisation faster
+    std::vector<eid_t> path;
+    std::vector<eid_t> next(N);
+    std::vector<bool> in_tree(N);
+
+    const vid_t root = gl->first_connected_vertex();
+    // const vid_t root = gl->random_connected_vertex();
 
     // perform the batch sampling
     for (int i = 0 ; i < BATCH_SIZE ; i++)
 	{
-        igraph_vector_clear(&res);
-		rst->sample(&res, 0);
+        rst->wilsons_get_st(&path, root, &next, &in_tree); // NOTE: for now, always sample from the node 0
 
         // NOTE: change K to k_start + 1, to disable ripple feature
         for(int k = k_start; k < K ;k++)
         {
-            if (igraph_vector_contains(&res, ps_vec[k].eid)){
+            if ( path.end() != std::find(path.begin(), path.end(), ps_vec[k].eid) ){
                 ps_vec[k].present++;
                 if(ps_vec[k].count_mode != PRESENCE)
                     break; // We should not continue to update the downstreams in this case

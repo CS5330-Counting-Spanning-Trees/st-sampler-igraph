@@ -1,6 +1,6 @@
 #pragma once
 
-#include <igraph/igraph.h>
+#include "graph_lite.hpp"
 
 #include <cassert>
 #include <vector>
@@ -25,11 +25,7 @@ public:
         ABSENCE
     };
 
-    enum random_walk_mode_t{
-        NORMAL = 0, // visit one means visit all, but the walk within the jointed vertices are permitted
-        AS_ONE_VERTEX // think of the set vertices jointed by present edges as 1 single vertex, while doing the walk
-    };
-
+    
     typedef struct count_result{
         double count = 1.0;
         long long effective_samples = 0;
@@ -40,7 +36,7 @@ public:
 
     
     typedef struct pivot_stats{
-        igraph_integer_t eid = -1;
+        eid_t eid = -1;
         int total = 0;
         int rippled_total = 0; // record keeping of how many samples we gotten from rippling
         int present = 0;
@@ -92,9 +88,9 @@ public:
             // printf("%lf\n", rmin);
             assert(rmin > 0.1);
 
-            printf("%.3lf %.3lf %.3lf %.3lf\n", ratio_buffer[0], ratio_buffer[1] ,ratio_buffer[2] ,ratio_buffer[3]);
+            // printf("%.3lf %.3lf %.3lf %.3lf\n", ratio_buffer[0], ratio_buffer[1] ,ratio_buffer[2] ,ratio_buffer[3]);
 
-            printf("rmax / rmin = %.6lf \t rmax %.3lf, rmin %.3lf total %d \n", rmax / rmin , rmax, rmin, total);
+            // printf("rmax / rmin = %.6lf \t rmax %.3lf, rmin %.3lf total %d \n", rmax / rmin , rmax, rmin, total);
             if (rmax / rmin < 1 + FLUCTURATION_THRESHOLD)
             {
                 printf("\nFinal Ratio = %.3lf, batch size = %d\n\n", 0.5 * (rmax + rmin), requested_batch_size);
@@ -129,7 +125,7 @@ public:
 
     ApproxCountST() = delete;
     // Initialise constants and g_contracted
-    ApproxCountST(igraph_t* g, random_walk_mode_t rw_mode);
+    ApproxCountST(GraphLite* g);
 
 
     // result stored in ps_vec
@@ -144,12 +140,12 @@ private:
     // This routine will make n ST samples, rooted at vertex vid. It also updates ps_vec until the first unspecified entries
     void sample_mini_batch_with_updates(RandomSpanningTrees* rst, int k_start);
 
-    random_walk_mode_t random_walk_mode;
-    igraph_t* g;
+    GraphLite* gl;
     
 
-    const igraph_integer_t N;
-	const igraph_integer_t M;
+    const vid_t N_initial;
+    vid_t N;
+	const eid_t M_initial;
     int K;
 
 };
