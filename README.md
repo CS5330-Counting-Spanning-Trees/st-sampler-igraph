@@ -20,6 +20,51 @@ make
 
 ## Running Time of The Approximate Counter
 
+### 2020-04-30 Update
+
+- Fix: avoid calculating ratio for edges removed by previous edge contraction. Previously causing slow down at later stage of the itereations
+- Fix: Better estimation results now
+- Improvement: constant factor speed boost
+
+### 200 Vertex, Complete Graph
+```
+Thu Apr 30 00:01:02 2020
+Created graph with 200 vertices and 19900 edges
+3031779 samples taken, with per sample time taking 0.018 ms
+Total time spent 55 seconds
+
+FINAL result = inf (e^1.04e+03) with 17324838 effective samples
+```
+compared to the oldest implementation, 414 seconds.
+
+### 500 Vertex, Complete Graph
+```
+Thu Apr 30 01:37:28 2020
+Created graph with 500 vertices and 124750 edges
+14831544 samples taken, with per sample time taking 0.063 ms
+Total time spent 937 seconds
+
+FINAL result = inf (e^3.06e+03) with 78708367 effective samples
+```
+
+### 200 Vertex, 0.1 Density, Max Degree 5
+```
+Thu Apr 30 00:52:47 2020
+Created graph with 200 vertices and 473 edges
+424509 samples taken, with per sample time taking 0.011 ms
+Total time spent 4 seconds
+
+FINAL result = 1.6136e+118 (e^2.72e+02) with 904954 effective samples
+```
+### 500 Vertex, 0.1 Density, Max Degree 5
+```
+Created graph with 500 vertices and 1218 edges
+1070589 samples taken, with per sample time taking 0.052 ms
+Total time spent 55 seconds
+
+FINAL result = 3.0521e+305 (e^7.03e+02) with 2277627 effective samples
+```
+
 ### 2020-04-25 Update
 
 I have done the following major improvement

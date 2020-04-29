@@ -28,6 +28,7 @@ public:
     
     typedef struct count_result{
         double count = 1.0;
+        double count_log = 0.0;
         long long effective_samples = 0;
         long long actual_samples = 0;
         double epsilon; // probabilistic multiplicative error bound
@@ -78,7 +79,7 @@ public:
                 return false;
             
             // only test convergence when the buffer is fully filled
-            if(update_count == 0 || update_count % PIVOT_BUFFER_SIZE)
+            if(update_count < PIVOT_BUFFER_SIZE)
                 return false;
 
             double rmax = *std::max_element(ratio_buffer.begin(), ratio_buffer.end());
@@ -107,6 +108,8 @@ public:
 
         // This function should be called everytime new samples are collected, but the count_mode is still UNSPECIFIED
         bool try_set_count_mode(){
+            assert(count_mode == UNSPECIFIED);
+            
             if (total < PRESAMPLE_SIZE_REQUIRED)
                 return false;
 
@@ -136,6 +139,8 @@ public:
     std::vector<pivot_stats_t> ps_vec;
 
 private:
+    inline void unmark_edges(const std::vector<eid_t> vec);
+    inline bool check_convergence(eid_t* k);
 
     // This routine will make n ST samples, rooted at vertex vid. It also updates ps_vec until the first unspecified entries
     void sample_mini_batch_with_updates(RandomSpanningTrees* rst, int k_start);
@@ -147,5 +152,9 @@ private:
     vid_t N;
 	const eid_t M_initial;
     int K;
+
+    std::vector<int> e_shuffle;
+
+    eid_t mode_setting_pointer;
 
 };
