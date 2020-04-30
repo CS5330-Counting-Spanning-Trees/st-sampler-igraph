@@ -12,7 +12,7 @@ public:
 
     
     // Wilson's Algorithm Implementation
-    int wilsons_get_st(std::vector<eid_t> *path, vid_t root, std::vector<vid_t>* next, std::vector<bool>* in_tree);
+    int wilsons_get_st(std::vector<eid_t> *path, vid_t root, std::vector<eid_t>* next, std::vector<bool>* in_tree);
 
 private:
 

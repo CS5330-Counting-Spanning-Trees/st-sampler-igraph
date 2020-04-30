@@ -18,7 +18,79 @@ make
 - Full graph, Cycle graph, Lattice graph
 - Many other graphs that are included in the igraph library [Graph Generators](https://igraph.org/c/doc/igraph-Generators.html)
 
+## Limitations Found
+
+- It is quite typical to have the sample generation time to be on the scale of 0.01ms. This will increase with the mean hitting time.
+- The sheer amount of edges to calculate ratio with, when vertices increase, turns this algorithm not scalable.
+- Sample reusable does help but has limited improvement over the scalability.
+- IDEAS: could we estimation ratios of multiple edges together (with the same vertex, or far apart?), or establish some divide and conquer strategy so the hitting time for each sub-problem is dramatically decreased.
+
 ## Running Time of The Approximate Counter
+
+### 2020-04-30 Update 2
+
+- Bug fixes (invalid array index)
+- Add: convergence test based on variance, instead of max/min
+
+### 100 Vertex, Complete Graph
+
+```
+Thu Apr 30 18:55:40 2020
+Created graph with 100 vertices and 4950 edges
+1028731 samples taken, with per sample time taking 0.004 ms
+Total time spent 4 seconds
+
+FINAL result = 1.9114e+195 (e^4.4965e+02) with 6806777 effective samples, avg 1375 samples per edge, 
+```
+
+### 200 Vertex, Complete Graph
+
+```
+Thu Apr 30 18:58:07 2020
+Created graph with 200 vertices and 19900 edges
+3103882 samples taken, with per sample time taking 0.012 ms
+Total time spent 36 seconds
+
+FINAL result = inf (e^1.0499e+03) with 23226525 effective samples, avg 1167 samples per edge, 
+```
+
+### 500 Vertex, Complete Graph
+
+```
+Thu Apr 30 18:59:25 2020
+Created graph with 500 vertices and 124750 edges
+15563688 samples taken, with per sample time taking 0.044 ms
+Total time spent 684 seconds
+
+FINAL result = inf (e^3.0953e+03) with 115017822 effective samples, avg 921 samples per edge, 
+```
+
+true result = e^3094
+
+### 500 Vertex, 0.1 Density, Max Degree 5
+
+```
+Thu Apr 30 19:11:50 2020
+Created graph with 500 vertices and 1218 edges
+1281073 samples taken, with per sample time taking 0.039 ms
+Total time spent 50 seconds
+
+FINAL result = 2.5223e+305 (e^7.0321e+02) with 2760247 effective samples, avg 2266 samples per edge, 
+```
+
+
+### 1000 Vertex, 0.1 Density, Max Degree 5
+
+```
+Thu Apr 30 19:14:01 2020
+Created graph with 1000 vertices and 2472 edges
+2647359 samples taken, with per sample time taking 0.100 ms
+Total time spent 265 seconds
+
+FINAL result = inf (e^1.4328e+03) with 5701466 effective samples, avg 2306 samples per edge. 
+```
+
+observe that the mean hitting time become much worse
 
 ### 2020-04-30 Update
 
@@ -27,6 +99,7 @@ make
 - Improvement: constant factor speed boost
 
 ### 200 Vertex, Complete Graph
+
 ```
 Thu Apr 30 00:01:02 2020
 Created graph with 200 vertices and 19900 edges
@@ -35,9 +108,22 @@ Total time spent 55 seconds
 
 FINAL result = inf (e^1.04e+03) with 17324838 effective samples
 ```
+
 compared to the oldest implementation, 414 seconds.
 
+Without randomising edges (edge sequenced according to vertex number)
+
+```
+Thu Apr 30 10:21:13 2020
+Created graph with 200 vertices and 19900 edges
+2950571 samples taken, with per sample time taking 0.011 ms
+Total time spent 33 seconds
+
+FINAL result = inf (e^1.05e+03) with 18427274 effective samples
+```
+
 ### 500 Vertex, Complete Graph
+
 ```
 Thu Apr 30 01:37:28 2020
 Created graph with 500 vertices and 124750 edges
@@ -47,7 +133,19 @@ Total time spent 937 seconds
 FINAL result = inf (e^3.06e+03) with 78708367 effective samples
 ```
 
+Without randomising edges (edge sequenced according to vertex number)
+
+```
+Thu Apr 30 10:23:14 2020
+Created graph with 500 vertices and 124750 edges
+14817429 samples taken, with per sample time taking 0.037 ms
+Total time spent 547 seconds
+
+FINAL result = inf (e^3.07e+03) with 84095442 effective samples
+```
+
 ### 200 Vertex, 0.1 Density, Max Degree 5
+
 ```
 Thu Apr 30 00:52:47 2020
 Created graph with 200 vertices and 473 edges
@@ -56,13 +154,40 @@ Total time spent 4 seconds
 
 FINAL result = 1.6136e+118 (e^2.72e+02) with 904954 effective samples
 ```
+
 ### 500 Vertex, 0.1 Density, Max Degree 5
+
 ```
 Created graph with 500 vertices and 1218 edges
 1070589 samples taken, with per sample time taking 0.052 ms
 Total time spent 55 seconds
 
 FINAL result = 3.0521e+305 (e^7.03e+02) with 2277627 effective samples
+```
+
+Without randomising edges (edge sequenced according to vertex number)
+
+```
+Thu Apr 30 10:34:23 2020
+Created graph with 500 vertices and 1218 edges
+1077820 samples taken, with per sample time taking 0.035 ms
+Total time spent 37 seconds
+
+FINAL result = 2.3998e+305 (e^7.03e+02) with 2308714 effective samples
+```
+
+### 1000 Vertex, 0.1 Density, Max Degree 5
+
+Without randomising edges (edge sequenced according to vertex number)
+
+```
+Thu Apr 30 14:30:23 2020
+Created graph with 1000 vertices and 2472 edges
+2226236 samples taken, with per sample time taking 0.096 ms
+Total time spent 213 seconds
+
+FINAL result = inf (e^1.43e+03) with 4756279 effective samples
+
 ```
 
 ### 2020-04-25 Update

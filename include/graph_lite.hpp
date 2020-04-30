@@ -39,14 +39,14 @@ public:
     inline vid_t first_connected_vertex();
     inline vid_t random_connected_vertex();
     void invalidate_edge(eid_t e){edge_list_[e].from =  edge_list_[e].to = -1;}
-    bool is_edge_valid(eid_t e){return edge_list_[e].from >= 0 && edge_list_[e].to >= 0;}
+    bool is_edge_valid(eid_t e){assert(e>=0 && e<edge_count_all());return edge_list_[e].from >= 0 && edge_list_[e].to >= 0;}
 
     // Obtain whole structures
     const auto& edge_list(){return edge_list_;}
     const auto& inclist(){return inclist_;}
 
     // Modify the Graph
-    inline const std::vector<eid_t> contract_edge(eid_t e, bool return_other_edges_removed = true); // return number of contracted edges other than the current one
+    inline void contract_edge(eid_t e); // return number of contracted edges other than the current one
     inline void remove_edge(eid_t e);
 
     inline void sanity_check(bool check_connected = false);
@@ -93,6 +93,7 @@ GraphLite::GraphLite(const igraph_t* g)
 
 inline vid_t GraphLite::edge_other_end(eid_t e, vid_t v1)
 {
+    assert(is_edge_valid(e));
     if (edge_list_[e].from == v1)
         return edge_list_[e].to;
     else if (edge_list_[e].to == v1)
@@ -131,10 +132,10 @@ vid_t GraphLite::random_connected_vertex()
 }
 
 
-const std::vector<eid_t> GraphLite::contract_edge(eid_t e_in, bool return_other_edges_removed)
+void GraphLite::contract_edge(eid_t e_in)
 {
     std::vector<eid_t> ret;
-    assert(e_in < edge_count_all());
+    assert(e_in < edge_count_all() && e_in >= 0);
 
     vid_t from = edge_list_[e_in].from;
     vid_t to = edge_list_[e_in].to;
@@ -153,13 +154,12 @@ const std::vector<eid_t> GraphLite::contract_edge(eid_t e_in, bool return_other_
         eid_t e = inclist_[to][i];
 
         // assert no self loops, or wrong edge pointed
+        assert(is_edge_valid(e));
         assert( (edge_list_[e].from == to) != (edge_list_[e].to == to) );
 
         if(edge_list_[e].from == from || edge_list_[e].to == from){
             remove_edge(e);
             edge_removed++;
-            if(return_other_edges_removed && e != e_in)
-                ret.push_back(e);
             continue;
         }
 
@@ -183,13 +183,12 @@ const std::vector<eid_t> GraphLite::contract_edge(eid_t e_in, bool return_other_
     v_removed_count++;
 
     printf("Contracted edge %d and removed vertex %d and additional %d edges \n", e_in, to, edge_removed-1);
-    return ret;
 }
 
 // remove edge only remove from the inclist, not the edge_list, to conserve the edge id
 void GraphLite::remove_edge(eid_t e)
 {
-    assert(e < edge_count_all());
+    assert(e < edge_count_all() && e >= 0);
 
     vid_t from = edge_list_[e].from;
     vid_t to = edge_list_[e].to;

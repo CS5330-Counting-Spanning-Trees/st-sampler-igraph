@@ -4,14 +4,13 @@
 #include <random>
 #include <algorithm>
 
-ApproxCountST::ApproxCountST(GraphLite* gl) : gl(gl), N_initial(gl->vertex_count_all()), M_initial(gl->edge_count_all())
+ApproxCountST::ApproxCountST(GraphLite* gl) : ps_vec(gl->edge_count_all()), gl(gl), N_initial(gl->vertex_count_all()), M_initial(gl->edge_count_all())
 {
     assert(M_initial >= N_initial-1);
     // K = M_initial - (N-1);
     K = M_initial; // the last round should always yield ratio of 1, for presence
     N = N_initial;
 
-    ps_vec.resize(K);
 
     printf("Approximate Count ST initialised with a graph of %d vertices and %d edges\n", N, M_initial);
     printf("Iterations of ratio estimators to run: %d rounds\n", K);
@@ -24,11 +23,11 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
     printf("approx_count_st...\n");
     // Obtain a shuffled edge sequence, or just iterate as per original sequence
 
-    e_shuffle = std::vector<int>(M_initial);
+    e_shuffle.resize(M_initial);
     for(int i = 0 ; i < M_initial; i++)
         e_shuffle[i] = i;
 
-    bool do_shuffle_edges = true;
+    const bool do_shuffle_edges = false;
     if(do_shuffle_edges)
     {
         std::random_device rd;
@@ -52,6 +51,13 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
     // for each k-th loop, we keep drawing batch samples for the k-th ratio, until convergence
     // This loop will calculate ratio of G_M / G_{M-1} ..... G_{2} / G_{1} * G{1}, total of M-1 - (N-1) + 1 terms
     mode_setting_pointer = 0;
+
+    // store the sample obtained from the sampler
+        
+    sampling_struct_t sampling_struct;
+    sampling_struct.next.resize(N_initial);
+    sampling_struct.in_tree.resize(N_initial);
+
     for(int k = 0; k < K ; )
     {
         // TODO: make it more streamlined
@@ -63,12 +69,7 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
             // possible to have ratio = -1, uninitialised, as we contract it before it got even attempted.
             if (ps_vec[k].ratio == -1.0)
                 ps_vec[k].ratio = 1.0;
-            if(ps_vec[k].ratio != 1.0){
-                gl->print();
-                ps_vec[k].print();
-                printf("ratio not 1! = %.3f\n", ps_vec[k].ratio);
-                abort();
-            }
+            assert(ps_vec[k].ratio == 1.0);
             k++;
             continue;
         }
@@ -99,7 +100,7 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
         if (check_convergence(&k))
             continue;
     
-        sample_mini_batch_with_updates(&rst, k); // affected by random_walk_mode
+        sample_mini_batch_with_updates(&rst, k, &sampling_struct); // affected by random_walk_mode
         printf(".");
         fflush(stdout);
     }
@@ -117,28 +118,14 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
         res.effective_samples += ps_vec[k].total;
         res.actual_samples += ps_vec[k].total - ps_vec[k].rippled_total;
     }
-
+    printf("approx_count_st COMPLETED...\n");
     return res;
-}
-inline void ApproxCountST::unmark_edges(const std::vector<eid_t> vec)
-{
-    for (auto e : vec){
-        printf("unmarking edge %d at position %d \n", e, e_shuffle[e]);
-        assert(ps_vec[e_shuffle[e]].eid == e);
-        // when we are removing edges removed induced by other edge contraction, its ratio must be certain
-        if(ps_vec[e_shuffle[e]].converged())
-            if(ps_vec[e_shuffle[e]].ratio != 1.0){
-                ps_vec[e_shuffle[e]].print();
-                printf("edge %d converged but not 1, when unmarking! = %.3f\n", e, ps_vec[e_shuffle[e]].ratio);
-                abort();
-            }
-        gl->invalidate_edge(e);
-    }     
 }
 
 inline bool ApproxCountST::check_convergence(eid_t* pk)
 {
     eid_t& k = *pk;
+    assert(k >= 0 && k < K);
     if (ps_vec[k].converged()){
 
         printf("%d-th of %d ratio converged to %.3lf\n", k, K, ps_vec[k].ratio);
@@ -147,7 +134,7 @@ inline bool ApproxCountST::check_convergence(eid_t* pk)
         switch(ps_vec[k].count_mode){
             case PRESENCE:
                 // to contract the edge
-                unmark_edges(std::move(gl->contract_edge(ps_vec[k].eid)));
+                gl->contract_edge(ps_vec[k].eid);
                 break;
             case ABSENCE:
                 // to delete the edge in the incident list
@@ -167,17 +154,11 @@ inline bool ApproxCountST::check_convergence(eid_t* pk)
 }
 
 // Draw new samples starting from index k
-void ApproxCountST::sample_mini_batch_with_updates(RandomSpanningTrees* rst, int k_start)
+void ApproxCountST::sample_mini_batch_with_updates(RandomSpanningTrees* rst, int k_start, sampling_struct_t* sampling_struct)
 {
-    
+    assert(k_start >=0 && k_start < K);
     const int BATCH_SIZE = ps_vec[k_start].requested_batch_size;
     // printf("mini_batch at [%d] for %d samples\n", k_start, BATCH_SIZE);
-
-    // store the sample obtained from the sampler
-    // TODO: put this outside the function to make initialisation faster
-    std::vector<eid_t> path;
-    std::vector<eid_t> next(N);
-    std::vector<bool> in_tree(N);
 
     const vid_t root = gl->first_connected_vertex();
     // const vid_t root = gl->random_connected_vertex();
@@ -185,7 +166,7 @@ void ApproxCountST::sample_mini_batch_with_updates(RandomSpanningTrees* rst, int
     // perform the batch sampling
     for (int i = 0 ; i < BATCH_SIZE ; i++)
 	{
-        rst->wilsons_get_st(&path, root, &next, &in_tree); // NOTE: for now, always sample from the node 0
+        rst->wilsons_get_st(&(sampling_struct->path), root, &(sampling_struct->next), &(sampling_struct->in_tree)); // NOTE: for now, always sample from the node 0
 
         // NOTE: change K to k_start + 1, to disable ripple feature
         for(int k = k_start; k < K ;k++)
@@ -196,7 +177,7 @@ void ApproxCountST::sample_mini_batch_with_updates(RandomSpanningTrees* rst, int
                 assert(k!=k_start);
                 continue;
             }
-            if ( path.end() != std::find(path.begin(), path.end(), ps_vec[k].eid) ){
+            if ( sampling_struct->path.end() != std::find(sampling_struct->path.begin(), sampling_struct->path.end(), ps_vec[k].eid) ){
                 ps_vec[k].present++;
                 if(ps_vec[k].count_mode != PRESENCE)
                     break; // We should not continue to update the downstreams in this case
@@ -226,8 +207,14 @@ void ApproxCountST::sample_mini_batch_with_updates(RandomSpanningTrees* rst, int
         // ps_vec[k].print();
 
         // check if the count mode can be specified now
-        while( mode_setting_pointer < K && (!gl->is_edge_valid(ps_vec[mode_setting_pointer].eid) || ps_vec[mode_setting_pointer].try_set_count_mode()) )
-            mode_setting_pointer++;
+        if (k == mode_setting_pointer){
+            assert(k < K);
+            if (!gl->is_edge_valid(ps_vec[k].eid) || ps_vec[k].try_set_count_mode()){
+                if (mode_setting_pointer < K - 1)
+                    mode_setting_pointer++;
+            }
+        }
+
     }
     
 }

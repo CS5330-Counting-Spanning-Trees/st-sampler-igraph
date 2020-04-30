@@ -10,8 +10,9 @@
 #include <algorithm>
 
 const int PRESAMPLE_SIZE_REQUIRED = 50;
-const int PIVOT_BUFFER_SIZE = 4;
-const double FLUCTURATION_THRESHOLD = 0.003;
+const int PIVOT_BUFFER_SIZE = 8;
+const double RATIO_FLUCTURATION_THRESHOLD = 0.003;
+const double VARIANCE_THRESHOLD = 0.002;
 
 class RandomSpanningTrees;
 
@@ -34,7 +35,6 @@ public:
         double epsilon; // probabilistic multiplicative error bound
         double delta; // probabilistic confidence
     }result_t;
-
     
     typedef struct pivot_stats{
         eid_t eid = -1;
@@ -49,9 +49,8 @@ public:
         int requested_batch_size = 50;
         std::array<double, PIVOT_BUFFER_SIZE> ratio_buffer;
 
-        void update(int new_present = 0, int new_absent = 0){
-            present += new_present;
-            absent += new_absent;
+
+        void update(){
 
             // not enough samples to create a new ratio data in the buffer
             if (present + absent < total + requested_batch_size)
@@ -74,14 +73,7 @@ public:
             update_count++;
         }
 
-        bool converged(){
-            if(count_mode == UNSPECIFIED)
-                return false;
-            
-            // only test convergence when the buffer is fully filled
-            if(update_count < PIVOT_BUFFER_SIZE)
-                return false;
-
+        bool test_converged_ratio(){
             double rmax = *std::max_element(ratio_buffer.begin(), ratio_buffer.end());
             double rmin = *std::min_element(ratio_buffer.begin(), ratio_buffer.end());
             
@@ -92,11 +84,40 @@ public:
             // printf("%.3lf %.3lf %.3lf %.3lf\n", ratio_buffer[0], ratio_buffer[1] ,ratio_buffer[2] ,ratio_buffer[3]);
 
             // printf("rmax / rmin = %.6lf \t rmax %.3lf, rmin %.3lf total %d \n", rmax / rmin , rmax, rmin, total);
-            if (rmax / rmin < 1 + FLUCTURATION_THRESHOLD)
-            {
+            if (rmax / rmin < 1 + RATIO_FLUCTURATION_THRESHOLD){
                 printf("\nFinal Ratio = %.3lf, batch size = %d\n\n", 0.5 * (rmax + rmin), requested_batch_size);
-                return true; // CONVERGENCE!
+                return true;
             }
+            else
+                return false;
+        }
+
+        bool test_converged_variance(){
+            double sum = std::accumulate(ratio_buffer.begin(), ratio_buffer.end(), 0.0);
+            double mean = sum / ratio_buffer.size();
+
+            double sq_sum = std::inner_product(ratio_buffer.begin(), ratio_buffer.end(), ratio_buffer.begin(), 0.0);
+            double stddev = std::sqrt(sq_sum / ratio_buffer.size() - mean * mean);
+
+            if(stddev / mean < VARIANCE_THRESHOLD){
+                ratio = mean;
+                printf("\nFinal Ratio = %.3lf, batch size = %d\n\n", mean, requested_batch_size);
+                return true;
+            }
+            else
+                return false;
+        }
+
+        bool converged(){
+            if(count_mode == UNSPECIFIED)
+                return false;
+            
+            // only test convergence when the buffer is fully filled
+            if(update_count < PIVOT_BUFFER_SIZE)
+                return false;
+
+            if(test_converged_variance())
+                return true; // CONVERGENCE!
 
             // printf("->%.3lf", rmax / rmin);
 
@@ -108,7 +129,8 @@ public:
 
         // This function should be called everytime new samples are collected, but the count_mode is still UNSPECIFIED
         bool try_set_count_mode(){
-            assert(count_mode == UNSPECIFIED);
+            if(count_mode != UNSPECIFIED)
+                return true;
             
             if (total < PRESAMPLE_SIZE_REQUIRED)
                 return false;
@@ -137,13 +159,18 @@ public:
     void print_all();
 
     std::vector<pivot_stats_t> ps_vec;
-
+    
 private:
-    inline void unmark_edges(const std::vector<eid_t> vec);
     inline bool check_convergence(eid_t* k);
 
+    typedef struct sampling_struct{
+        std::vector<eid_t> path;
+        std::vector<eid_t> next;
+        std::vector<bool> in_tree;
+    }sampling_struct_t;
+
     // This routine will make n ST samples, rooted at vertex vid. It also updates ps_vec until the first unspecified entries
-    void sample_mini_batch_with_updates(RandomSpanningTrees* rst, int k_start);
+    void sample_mini_batch_with_updates(RandomSpanningTrees* rst, int k_start, sampling_struct_t* sampling_struct);
 
     GraphLite* gl;
     
@@ -153,7 +180,7 @@ private:
 	const eid_t M_initial;
     int K;
 
-    std::vector<int> e_shuffle;
+    std::vector<eid_t> e_shuffle;
 
     eid_t mode_setting_pointer;
 

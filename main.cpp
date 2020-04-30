@@ -36,18 +36,18 @@ int main(void)
 
 	// generate_small_test_graph(&g);
 	
-	// generate_random_connected_graph(&g, 500, 0.1, 5);
+	generate_random_connected_graph(&g, 1000, 0.1, 5);
 	
-	igraph_full(&g, 500, IGRAPH_UNDIRECTED, IGRAPH_NO_LOOPS);
+	// igraph_full(&g, 500, IGRAPH_UNDIRECTED, IGRAPH_NO_LOOPS);
 
-	// igraph_ring(&g,1000,IGRAPH_UNDIRECTED, 0, 1);
+	// igraph_ring(&g,200,IGRAPH_UNDIRECTED, 0, 1);
 
 
 	// igraph_vector_t dimvector;
 	// igraph_vector_init(&dimvector, 3);
-	// VECTOR(dimvector)[0]=33;
-	// VECTOR(dimvector)[1]=33;
-	// VECTOR(dimvector)[2]=33;
+	// VECTOR(dimvector)[0]=10;
+	// VECTOR(dimvector)[1]=10;
+	// VECTOR(dimvector)[2]=10;
 	// igraph_lattice(&g, &dimvector, 0, IGRAPH_UNDIRECTED, 0,1);
 
 
@@ -72,8 +72,10 @@ int main(void)
 	long begin = clock();
 
 	//// Actual Counting work Starts
-	ApproxCountST ast(&gl);
-	ApproxCountST::result_t res = ast.approx_count_st();
+	ApproxCountST::result_t res;
+	ApproxCountST* ast = new ApproxCountST(&gl); // putting on heap is needed, otherwise double free error
+	res = ast->approx_count_st();
+
 	//// Actual Counting work Ends
 
 	long end = clock();
@@ -81,7 +83,7 @@ int main(void)
 	log2file(fp,"%lld samples taken, with per sample time taking %.3lf ms\n", res.actual_samples, (double)(end - begin) / res.actual_samples / CLOCKS_PER_SEC * 1e3);
 	log2file(fp,"Total time spent %ld seconds\n\n", (end - begin) / CLOCKS_PER_SEC);
 
-	log2file(fp,"FINAL result = %.4e (e^%.2e) with %lld effective samples\n\n", res.count, res.count_log, res.effective_samples);
+	log2file(fp,"FINAL result = %.4e (e^%.4e) with %lld effective samples, avg %d samples per edge. \n\n", res.count, res.count_log, res.effective_samples, res.effective_samples / gl.edge_count_all());
 
 	fclose(fp);
 
