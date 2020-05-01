@@ -11,8 +11,8 @@
 
 const int PRESAMPLE_SIZE_REQUIRED = 50;
 const int PIVOT_BUFFER_SIZE = 8;
-const double RATIO_FLUCTURATION_THRESHOLD = 0.003;
-const double VARIANCE_THRESHOLD = 0.002;
+const double RATIO_FLUCTURATION_THRESHOLD = 0.002;
+const double VARIANCE_THRESHOLD = 0.001;
 
 class RandomSpanningTrees;
 
@@ -176,12 +176,10 @@ private:
     
 
     const vid_t N_initial;
-    vid_t N;
 	const eid_t M_initial;
-    int K;
+    const int K;
 
     std::vector<eid_t> e_shuffle;
 
-    eid_t mode_setting_pointer;
 
 };

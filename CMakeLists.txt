@@ -21,9 +21,12 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3") # without -DNDEBUG
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules/")
 find_package(IGRAPH REQUIRED)
 
+find_package(Eigen3 REQUIRED)
+
 include_directories(
     include
     ${IGRAPH_INCLUDES}
+    ${EIGEN3_INCLUDE_DIRS}
 )
 
 link_libraries(
@@ -34,9 +37,26 @@ add_executable(test-igraph
     test-igraph.c
 )
 
-add_executable(st-sampler
+add_executable(st-sampler-full-graph
     random_spanning_trees.cpp
     approx_count_st.cpp
     main.cpp
 )
+
+add_executable(st-sampler-sparse-graph
+    random_spanning_trees.cpp
+    approx_count_st.cpp
+    main.cpp
+)
+
+add_executable(st-sampler-ring-graph
+    random_spanning_trees.cpp
+    approx_count_st.cpp
+    main.cpp
+)
+
+target_compile_definitions(st-sampler-full-graph PUBLIC FULL_GRAPH)
+target_compile_definitions(st-sampler-sparse-graph PUBLIC SPARSE_GRAPH)
+target_compile_definitions(st-sampler-ring-graph PUBLIC RING_GRAPH)
+
 

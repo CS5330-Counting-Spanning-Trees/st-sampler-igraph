@@ -67,6 +67,17 @@ FINAL result = inf (e^3.0953e+03) with 115017822 effective samples, avg 921 samp
 
 true result = e^3094
 
+### 1000 Vertex, Complete Graph
+
+```
+Thu Apr 30 19:32:09 2020
+Created graph with 1000 vertices and 499500 edges
+53717546 samples taken, with per sample time taking 0.118 ms
+Total time spent 6335 seconds
+
+FINAL result = inf (e^6.8905e+03) with 387723790 effective samples, avg 776 samples per edge. 
+```
+
 ### 500 Vertex, 0.1 Density, Max Degree 5
 
 ```
