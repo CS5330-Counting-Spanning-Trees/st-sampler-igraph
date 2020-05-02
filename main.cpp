@@ -12,6 +12,11 @@
 #include <mtt.hpp>
 
 
+ApproxCountST::convergence_mode_t ApproxCountST::convergence_mode = CONVERGENCE_MODE;
+double ApproxCountST::convergence_ratio_threshold = RATIO_THRESHOLD_DEFAULT;
+double ApproxCountST::convergence_variance_threshold = VARIANCE_THRESHOLD_DEFAULT;
+int ApproxCountST::convergence_constant_threshold = CONSTANT_THRESHOLD_DEFAULT;
+
 void log2file(FILE* fp, const char *__restrict __format, ...)
 {
 	va_list args;
@@ -27,9 +32,9 @@ void log2file(FILE* fp, const char *__restrict __format, ...)
 int main(int argc, char* argv[])
 {
 
-	if (argc < 2) {
+	if (argc < 4) {
         // Tell the user how to run the program
-       printf("Usage: %s NUM_OF_VERTICES [NUM_OF_LOOPS]\n", argv[0] );
+       printf("Usage: %s NUM_OF_VERTICES NUM_OF_LOOPS THRESHOLD\n", argv[0] );
         /* "Usage messages" are a conventional way of telling the user
          * how to run a program if they enter the command incorrectly.
          */
@@ -38,14 +43,19 @@ int main(int argc, char* argv[])
 
 	const int N = atoi(argv[1]);
 
-	int L = 1;
+	int L = atoi(argv[2]);
 
-	if (argc == 3) {
-		L = atoi(argv[2]);
-	}
+	const double threshold = atof(argv[3]);
+
+	ApproxCountST::convergence_constant_threshold =
+	ApproxCountST::convergence_ratio_threshold =
+	ApproxCountST::convergence_variance_threshold = threshold;
+
 
 	FILE *fp;
-	fp = fopen(strcat(argv[0],".txt"), "a");
+	char filename[200];
+	strcpy(filename, argv[0]);
+	fp = fopen(strcat(filename,".txt"), "a");
 
 	log2file(fp, "-------------------------------------------------------------\n");
 
@@ -80,9 +90,11 @@ int main(int argc, char* argv[])
 	GraphLite gl(&g);
 
 	time_t current_time;
+	struct tm * timeinfo;
     char* c_time_string;
 	/* Convert to local time format. */
 	current_time = time(NULL);
+	timeinfo = localtime(&current_time);
     c_time_string = ctime(&current_time);
 	log2file(fp, "%s", c_time_string);
 	log2file(fp, "Created graph with %d vertices and %d edges\n", gl.vertex_count_all() , gl.edge_count_all());
@@ -91,9 +103,10 @@ int main(int argc, char* argv[])
 
 	// for writing csv file
 	FILE *fp_csv;
-	char csv_filename[30];
-	sprintf(csv_filename, "%ld" ,current_time / 100 % 1000000);
-	fp_csv = fopen(strcat(csv_filename, ".csv"), "w");
+	char csv_filename[200];
+	strftime(filename,30,"%m-%d-%H-%M-%S",timeinfo);
+	sprintf(csv_filename, "%s-%s.csv" ,argv[0], filename);
+	fp_csv = fopen(csv_filename, "w");
 
 	long begin = clock();
 
@@ -121,15 +134,24 @@ int main(int argc, char* argv[])
 
 	//////////////////////////////////////////////////////////////////////////////////////////
 
-	
+	//// Logging Parameters
 
-	//// Actual Counting work Starts
+	char params[1024];
+	sprintf(params,"N=%d, M=%d, presample_size=%d, buffer_size=%d, convergence_mode=%d, threshold=%lf, initial_batch_size=%d\n", N, gl.edge_count_all(), PRESAMPLE_SIZE_REQUIRED, PIVOT_BUFFER_SIZE, CONVERGENCE_MODE, threshold, INITIAL_REQUESTED_BATCH_SIZE);
+
+	log2file(fp, "%s", params);
+	fprintf(fp_csv,"%s", params);
+
 	ApproxCountST::result_t res;
+	
+	fprintf(fp_csv,"trial, count_log, mtt_log, time_spent, error rate, actual samples\n");
+	log2file(fp,"stats writting to file %s\n", csv_filename);
 
-	fprintf(fp_csv,"trial, count_log, mtt_log, time_spent, error rate\n");
-	log2file(fp,"stats writting to file %s.csv\n", csv_filename);
+	fflush(fp_csv);
+	fflush(fp);
 
 	for (int l = 0; l < L; l++){
+
 		GraphLite gl_temp = gl;
 
 		log2file(fp,"<<<<<<<<<<<ROUND %d<<<<<<<<<<<<<<\n", l+1);
@@ -148,7 +170,7 @@ int main(int argc, char* argv[])
 		log2file(fp,"error percentage %.2lf%%", 100.0 * (std::exp(res.count_log - logdet_value) - 1.0) );
 		log2file(fp,", time spent for randomised algo: %ld seconds\n\n", (end - begin) / CLOCKS_PER_SEC);
 
-		fprintf(fp_csv, "%d, %.4e, %.4e, %ld, %.4lf\n", l+1, res.count_log, logdet_value, (end - begin) / CLOCKS_PER_SEC, (std::exp(res.count_log - logdet_value) - 1.0));
+		fprintf(fp_csv, "%d, %.4e, %.4e, %ld, %.4lf, %lld\n", l+1, res.count_log, logdet_value, (end - begin) / CLOCKS_PER_SEC, (std::exp(res.count_log - logdet_value) - 1.0), res.actual_samples);
 		fflush(fp_csv);
 		fflush(fp);
 		delete ast;

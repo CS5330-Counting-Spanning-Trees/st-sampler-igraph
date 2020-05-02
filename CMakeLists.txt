@@ -29,34 +29,81 @@ include_directories(
     ${EIGEN3_INCLUDE_DIRS}
 )
 
+add_library(st-sampler-lib
+    random_spanning_trees.cpp
+    approx_count_st.cpp
+)
+
 link_libraries(
     ${IGRAPH_LIBRARIES}
+    st-sampler-lib
 )
 
 add_executable(test-igraph
     test-igraph.c
 )
 
-add_executable(st-sampler-full-graph
-    random_spanning_trees.cpp
-    approx_count_st.cpp
-    main.cpp
+add_executable(st-sampler-full-graph-ratio main.cpp)
+add_executable(st-sampler-sparse-graph-ratio main.cpp)
+add_executable(st-sampler-ring-graph-ratio main.cpp)
+
+add_executable(st-sampler-full-graph-variance main.cpp)
+add_executable(st-sampler-sparse-graph-variance main.cpp)
+add_executable(st-sampler-ring-graph-variance main.cpp)
+
+add_executable(st-sampler-full-graph-constant main.cpp)
+add_executable(st-sampler-sparse-graph-constant main.cpp)
+add_executable(st-sampler-ring-graph-constant main.cpp)
+
+
+# FULL GRAPH
+target_compile_definitions(st-sampler-full-graph-ratio PRIVATE 
+    FULL_GRAPH 
+    CONVERGENCE_MODE=ApproxCountST::RATIO
+)
+target_compile_definitions(st-sampler-full-graph-variance PRIVATE 
+    FULL_GRAPH 
+    CONVERGENCE_MODE=ApproxCountST::VARIANCE
+)
+target_compile_definitions(st-sampler-full-graph-constant PRIVATE 
+    FULL_GRAPH 
+    CONVERGENCE_MODE=ApproxCountST::CONSTANT
 )
 
-add_executable(st-sampler-sparse-graph
-    random_spanning_trees.cpp
-    approx_count_st.cpp
-    main.cpp
+# SPARSE GRAPH
+target_compile_definitions(st-sampler-sparse-graph-ratio PRIVATE 
+    SPARSE_GRAPH
+    CONVERGENCE_MODE=ApproxCountST::RATIO
+)
+target_compile_definitions(st-sampler-sparse-graph-variance PRIVATE 
+    SPARSE_GRAPH
+    CONVERGENCE_MODE=ApproxCountST::VARIANCE
+)
+target_compile_definitions(st-sampler-sparse-graph-constant PRIVATE 
+    SPARSE_GRAPH
+    CONVERGENCE_MODE=ApproxCountST::CONSTANT
 )
 
-add_executable(st-sampler-ring-graph
-    random_spanning_trees.cpp
-    approx_count_st.cpp
-    main.cpp
+# RING GRAPH
+target_compile_definitions(st-sampler-ring-graph-ratio PRIVATE 
+    RING_GRAPH
+    CONVERGENCE_MODE=ApproxCountST::RATIO
+)
+target_compile_definitions(st-sampler-ring-graph-variance PRIVATE 
+    RING_GRAPH
+    CONVERGENCE_MODE=ApproxCountST::VARIANCE
+)
+target_compile_definitions(st-sampler-ring-graph-constant PRIVATE 
+    RING_GRAPH
+    CONVERGENCE_MODE=ApproxCountST::CONSTANT
 )
 
-target_compile_definitions(st-sampler-full-graph PUBLIC FULL_GRAPH)
-target_compile_definitions(st-sampler-sparse-graph PUBLIC SPARSE_GRAPH)
-target_compile_definitions(st-sampler-ring-graph PUBLIC RING_GRAPH)
-
+target_compile_definitions(st-sampler-lib PUBLIC
+    PRESAMPLE_SIZE_REQUIRED=100
+    PIVOT_BUFFER_SIZE=8
+    RATIO_THRESHOLD_DEFAULT=0.002
+    VARIANCE_THRESHOLD_DEFAULT=0.001
+    CONSTANT_THRESHOLD_DEFAULT=4000
+    INITIAL_REQUESTED_BATCH_SIZE=500
+)
 

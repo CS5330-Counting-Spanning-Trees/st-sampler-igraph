@@ -27,6 +27,11 @@ make
 
 ## Running Time of The Approximate Counter
 
+### 2020-05-02 Update
+
+- Change to convergence test on the inverse ratio
+- Split binaries for different configs, for easier testing
+
 ### 2020-04-30 Update 2
 
 - Bug fixes (invalid array index)
@@ -65,7 +70,7 @@ Total time spent 684 seconds
 FINAL result = inf (e^3.0953e+03) with 115017822 effective samples, avg 921 samples per edge, 
 ```
 
-true result = e^3094
+true result = e^3094, every e^0.25 ~= 10
 
 ### 1000 Vertex, Complete Graph
 

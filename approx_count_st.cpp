@@ -93,7 +93,7 @@ ApproxCountST::result_t ApproxCountST::approx_count_st()
             // Good! Enough samples were obtained to output past stats
             if(ps_vec[k].update_count >= PIVOT_BUFFER_SIZE){
                 printf("Past ratio buffer:");
-                for(auto e : ps_vec[k].ratio_buffer)
+                for(auto e : ps_vec[k].inverse_ratio_buffer)
                     printf("%.3lf ", e);
                 printf("\n");
             }

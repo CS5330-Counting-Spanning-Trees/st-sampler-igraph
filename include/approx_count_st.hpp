@@ -9,16 +9,25 @@
 
 #include <algorithm>
 
+/*
 const int PRESAMPLE_SIZE_REQUIRED = 50;
 const int PIVOT_BUFFER_SIZE = 8;
 const double RATIO_FLUCTURATION_THRESHOLD = 0.002;
 const double VARIANCE_THRESHOLD = 0.001;
+const int INITIAL_REQUESTED_BATCH_SIZE = 500;
+*/
 
 class RandomSpanningTrees;
 
 class ApproxCountST{
 
 public:
+
+    enum convergence_mode_t{
+        RATIO = 0,
+        VARIANCE,
+        CONSTANT
+    };
 
     enum count_mode_t{
         UNSPECIFIED = 0,
@@ -46,8 +55,8 @@ public:
         double ratio = -1;
 
         int update_count = 0;
-        int requested_batch_size = 50;
-        std::array<double, PIVOT_BUFFER_SIZE> ratio_buffer;
+        int requested_batch_size = INITIAL_REQUESTED_BATCH_SIZE;
+        std::array<double, PIVOT_BUFFER_SIZE> inverse_ratio_buffer;
 
 
         void update(){
@@ -69,23 +78,28 @@ public:
             }
 
             
-            ratio_buffer[update_count % PIVOT_BUFFER_SIZE] = ratio;
+            inverse_ratio_buffer[update_count % PIVOT_BUFFER_SIZE] = 1.0 / ratio;
             update_count++;
         }
 
+        bool test_constant(){
+            if (total > convergence_constant_threshold)
+                return true;
+            else
+                return false;
+        }
+
         bool test_converged_ratio(){
-            double rmax = *std::max_element(ratio_buffer.begin(), ratio_buffer.end());
-            double rmin = *std::min_element(ratio_buffer.begin(), ratio_buffer.end());
+            double rmax = *std::max_element(inverse_ratio_buffer.begin(), inverse_ratio_buffer.end());
+            double rmin = *std::min_element(inverse_ratio_buffer.begin(), inverse_ratio_buffer.end());
             
             assert(rmax > 0.2);
             // printf("%lf\n", rmin);
             assert(rmin > 0.1);
 
-            // printf("%.3lf %.3lf %.3lf %.3lf\n", ratio_buffer[0], ratio_buffer[1] ,ratio_buffer[2] ,ratio_buffer[3]);
-
-            // printf("rmax / rmin = %.6lf \t rmax %.3lf, rmin %.3lf total %d \n", rmax / rmin , rmax, rmin, total);
-            if (rmax / rmin < 1 + RATIO_FLUCTURATION_THRESHOLD){
+           if (rmax / rmin < 1 + convergence_ratio_threshold){
                 printf("\nFinal Ratio = %.3lf, batch size = %d\n\n", 0.5 * (rmax + rmin), requested_batch_size);
+                ratio = 1.0 / (0.5 * (rmax + rmin));
                 return true;
             }
             else
@@ -93,14 +107,14 @@ public:
         }
 
         bool test_converged_variance(){
-            double sum = std::accumulate(ratio_buffer.begin(), ratio_buffer.end(), 0.0);
-            double mean = sum / ratio_buffer.size();
+            double sum = std::accumulate(inverse_ratio_buffer.begin(), inverse_ratio_buffer.end(), 0.0);
+            double mean = sum / inverse_ratio_buffer.size();
 
-            double sq_sum = std::inner_product(ratio_buffer.begin(), ratio_buffer.end(), ratio_buffer.begin(), 0.0);
-            double stddev = std::sqrt(sq_sum / ratio_buffer.size() - mean * mean);
+            double sq_sum = std::inner_product(inverse_ratio_buffer.begin(), inverse_ratio_buffer.end(), inverse_ratio_buffer.begin(), 0.0);
+            double stddev = std::sqrt(sq_sum / inverse_ratio_buffer.size() - mean * mean);
 
-            if(stddev / mean < VARIANCE_THRESHOLD){
-                ratio = mean;
+            if(stddev / mean < convergence_variance_threshold){
+                ratio = 1.0 / mean;
                 printf("\nFinal Ratio = %.3lf, batch size = %d\n\n", mean, requested_batch_size);
                 return true;
             }
@@ -116,8 +130,19 @@ public:
             if(update_count < PIVOT_BUFFER_SIZE)
                 return false;
 
-            if(test_converged_variance())
-                return true; // CONVERGENCE!
+            switch (convergence_mode){ // CONVERGENCE!
+                case RATIO:
+                    if(test_converged_ratio()) return true;
+                    break;
+                case VARIANCE:
+                    if(test_converged_variance()) return true;
+                    break;
+                case CONSTANT:
+                    if(test_constant()) return true;
+                    break;
+                default:
+                    assert(0);
+            };
 
             // printf("->%.3lf", rmax / rmin);
 
@@ -159,6 +184,11 @@ public:
     void print_all();
 
     std::vector<pivot_stats_t> ps_vec;
+
+    static convergence_mode_t convergence_mode;
+    static double convergence_ratio_threshold;
+    static double convergence_variance_threshold;
+    static int convergence_constant_threshold;
     
 private:
     inline bool check_convergence(eid_t* k);
@@ -181,5 +211,5 @@ private:
 
     std::vector<eid_t> e_shuffle;
 
-
+    
 };
