@@ -16,6 +16,7 @@ ApproxCountST::convergence_mode_t ApproxCountST::convergence_mode = CONVERGENCE_
 double ApproxCountST::convergence_ratio_threshold = RATIO_THRESHOLD_DEFAULT;
 double ApproxCountST::convergence_variance_threshold = VARIANCE_THRESHOLD_DEFAULT;
 int ApproxCountST::convergence_constant_threshold = CONSTANT_THRESHOLD_DEFAULT;
+int ApproxCountST::initial_requested_batch_size = INITIAL_REQUESTED_BATCH_SIZE;
 
 void log2file(FILE* fp, const char *__restrict __format, ...)
 {
@@ -34,7 +35,7 @@ int main(int argc, char* argv[])
 
 	if (argc < 4) {
         // Tell the user how to run the program
-       printf("Usage: %s NUM_OF_VERTICES NUM_OF_LOOPS THRESHOLD\n", argv[0] );
+       printf("Usage: %s NUM_OF_VERTICES NUM_OF_LOOPS THRESHOLD [BATCH_SIZE]\n", argv[0] );
         /* "Usage messages" are a conventional way of telling the user
          * how to run a program if they enter the command incorrectly.
          */
@@ -51,11 +52,30 @@ int main(int argc, char* argv[])
 	ApproxCountST::convergence_ratio_threshold =
 	ApproxCountST::convergence_variance_threshold = threshold;
 
+	if(argc >= 5)
+		ApproxCountST::initial_requested_batch_size = atoi(argv[4]);
 
+	// txt file
 	FILE *fp;
 	char filename[200];
-	strcpy(filename, argv[0]);
-	fp = fopen(strcat(filename,".txt"), "a");
+	char c_time_string[100];
+
+	time_t current_time;
+	struct tm * timeinfo;
+	/* Convert to local time format. */
+	current_time = time(NULL);
+	timeinfo = localtime(&current_time);
+	strftime(c_time_string,30,"%m-%d-%H-%M-%S",timeinfo);
+
+	sprintf(filename, "%s-%s.txt", argv[0], c_time_string);
+	fp = fopen(filename, "a");
+	log2file(fp, "%s\n", c_time_string);
+
+
+	// for writing csv file
+	FILE *fp_csv;
+	sprintf(filename, "%s-%s.csv" ,argv[0], c_time_string);
+	fp_csv = fopen(filename, "w");
 
 	log2file(fp, "-------------------------------------------------------------\n");
 
@@ -89,24 +109,10 @@ int main(int argc, char* argv[])
 
 	GraphLite gl(&g);
 
-	time_t current_time;
-	struct tm * timeinfo;
-    char* c_time_string;
-	/* Convert to local time format. */
-	current_time = time(NULL);
-	timeinfo = localtime(&current_time);
-    c_time_string = ctime(&current_time);
-	log2file(fp, "%s", c_time_string);
+	
 	log2file(fp, "Created graph with %d vertices and %d edges\n", gl.vertex_count_all() , gl.edge_count_all());
 	fflush(fp);
 
-
-	// for writing csv file
-	FILE *fp_csv;
-	char csv_filename[200];
-	strftime(filename,30,"%m-%d-%H-%M-%S",timeinfo);
-	sprintf(csv_filename, "%s-%s.csv" ,argv[0], filename);
-	fp_csv = fopen(csv_filename, "w");
 
 	long begin = clock();
 
@@ -137,7 +143,7 @@ int main(int argc, char* argv[])
 	//// Logging Parameters
 
 	char params[1024];
-	sprintf(params,"N=%d, M=%d, presample_size=%d, buffer_size=%d, convergence_mode=%d, threshold=%lf, initial_batch_size=%d\n", N, gl.edge_count_all(), PRESAMPLE_SIZE_REQUIRED, PIVOT_BUFFER_SIZE, CONVERGENCE_MODE, threshold, INITIAL_REQUESTED_BATCH_SIZE);
+	sprintf(params,"N=%d, M=%d, presample_size=%d, buffer_size=%d, convergence_mode=%d, threshold=%lf, initial_batch_size=%d\n", N, gl.edge_count_all(), PRESAMPLE_SIZE_REQUIRED, PIVOT_BUFFER_SIZE, CONVERGENCE_MODE, threshold, ApproxCountST::initial_requested_batch_size);
 
 	log2file(fp, "%s", params);
 	fprintf(fp_csv,"%s", params);
@@ -145,7 +151,7 @@ int main(int argc, char* argv[])
 	ApproxCountST::result_t res;
 	
 	fprintf(fp_csv,"trial, count_log, mtt_log, time_spent, error rate, actual samples\n");
-	log2file(fp,"stats writting to file %s\n", csv_filename);
+	log2file(fp,"stats writting to file %s\n", filename);
 
 	fflush(fp_csv);
 	fflush(fp);
@@ -176,8 +182,6 @@ int main(int argc, char* argv[])
 		delete ast;
 		ast = nullptr;
 	}
-
-	log2file(fp,"stats written to file %s.csv\n", csv_filename);
 	
 	fclose(fp);
 	fclose(fp_csv);

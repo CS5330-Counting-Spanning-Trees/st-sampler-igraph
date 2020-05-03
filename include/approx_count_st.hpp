@@ -9,13 +9,6 @@
 
 #include <algorithm>
 
-/*
-const int PRESAMPLE_SIZE_REQUIRED = 50;
-const int PIVOT_BUFFER_SIZE = 8;
-const double RATIO_FLUCTURATION_THRESHOLD = 0.002;
-const double VARIANCE_THRESHOLD = 0.001;
-const int INITIAL_REQUESTED_BATCH_SIZE = 500;
-*/
 
 class RandomSpanningTrees;
 
@@ -55,7 +48,7 @@ public:
         double ratio = -1;
 
         int update_count = 0;
-        int requested_batch_size = INITIAL_REQUESTED_BATCH_SIZE;
+        int requested_batch_size = initial_requested_batch_size;
         std::array<double, PIVOT_BUFFER_SIZE> inverse_ratio_buffer;
 
 
@@ -189,6 +182,7 @@ public:
     static double convergence_ratio_threshold;
     static double convergence_variance_threshold;
     static int convergence_constant_threshold;
+    static int initial_requested_batch_size;
     
 private:
     inline bool check_convergence(eid_t* k);

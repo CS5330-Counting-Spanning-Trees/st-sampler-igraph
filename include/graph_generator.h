@@ -4,6 +4,12 @@
 #include <igraph/igraph.h>
 #include <limits.h>
 
+#include <algorithm>
+
+#include <cassert>
+#include <vector>
+#include <random>
+
 void generate_small_test_graph(igraph_t* g)
 {
 	igraph_vector_t v1;
@@ -23,6 +29,8 @@ void generate_small_test_graph(igraph_t* g)
 // assume uninitialised graph pointer
 void generate_random_graph(igraph_t* g, igraph_integer_t n, double density, igraph_integer_t max_degree, igraph_integer_t min_degree)
 {
+	std::default_random_engine re(123);
+
 	igraph_empty(g, n, IGRAPH_UNDIRECTED);
 	// Using density to add edges randomly
 
@@ -31,12 +39,23 @@ void generate_random_graph(igraph_t* g, igraph_integer_t n, double density, igra
 
 	for(igraph_integer_t i = 0; i < n; i++)
 	{
-		for(igraph_integer_t j = i + 1; j < n; j++) // no self-loop allowed
+
+		std::vector<igraph_integer_t> idx_j(n - i - 1);
+		int k = i+1;
+		for(auto& e : idx_j){
+			e = k++;
+		}
+		assert(k==n);
+
+		std::shuffle(idx_j.begin(), idx_j.end(), re);
+
+
+		for(auto j : idx_j) // no self-loop allowed
 		{
 			double p = rand() / (double)RAND_MAX;
 
-			long degi = igraph_vector_int_size(&adjlist.adjs[i]);
-			long degj = igraph_vector_int_size(&adjlist.adjs[j]);
+			long degi = igraph_vector_int_size(&adjlist.adjs[i]); // degree of vertex i
+			long degj = igraph_vector_int_size(&adjlist.adjs[j]); // degree of vertes j
 
 			if (degi >= max_degree || degj >= max_degree)
 				continue;
